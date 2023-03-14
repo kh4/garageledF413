@@ -61,35 +61,35 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 unsigned char leds[NUMLEDS*3];
 struct {
-	unsigned char header[DMAHEAD];
-	unsigned char data[LEDSPERLINE * 3 * 24];
-	unsigned char trailer[DMATRAIL];
+  unsigned char header[DMAHEAD];
+  unsigned char data[LEDSPERLINE * 3 * 24];
+  unsigned char trailer[DMATRAIL];
 } dmabuffer[2]; // 2 copies for double buffering
 
 int active_buffer=0;
 int ledsupdated=0;
 
 const uint8_t gamma8[] = {
- 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
- 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
- 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2,
- 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5,
- 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10,
- 10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
- 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
- 25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
- 37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
- 51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
- 69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
- 90, 92, 93, 95, 96, 98, 99,101, 102,104,105,107,109,110,112,114,
- 115,117,119,120,122,124,126,127, 129,131,133,135,137,138,140,142,
- 144,146,148,150,152,154,156,158, 160,162,164,167,169,171,173,175,
- 177,180,182,184,186,189,191,193, 196,198,200,203,205,208,210,213,
- 215,218,220,223,225,228,231,233, 236,239,241,244,247,249,252,255 };
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2,
+    2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5,
+    5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10,
+    10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16,
+    17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25,
+    25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36,
+    37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50,
+    51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68,
+    69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89,
+    90, 92, 93, 95, 96, 98, 99,101, 102,104,105,107,109,110,112,114,
+    115,117,119,120,122,124,126,127, 129,131,133,135,137,138,140,142,
+    144,146,148,150,152,154,156,158, 160,162,164,167,169,171,173,175,
+    177,180,182,184,186,189,191,193, 196,198,200,203,205,208,210,213,
+    215,218,220,223,225,228,231,233, 236,239,241,244,247,249,252,255 };
 
 const uint8_t gamma5[32] = {
-		0,1,2,3,4,5,6,7,8,10,13,16,20,25,30,36,
-	    43, 50, 59, 68, 78,89, 101, 114, 127, 142, 158, 175, 193, 213, 233, 236 };
+    0,1,2,3,4,5,6,7,8,10,13,16,20,25,30,36,
+    43, 50, 59, 68, 78,89, 101, 114, 127, 142, 158, 175, 193, 213, 233, 236 };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -126,47 +126,47 @@ int _write(int file, char *data, int len) {
 }
 
 void blank_leds() {
-	bzero(&dmabuffer, sizeof(dmabuffer));
-	bzero(leds,sizeof(*leds));
-	for (int b = 0; b < 2; b++)
-		for (int i = 0; i < LEDSPERLINE; i++)
-			for (int j = 0; j < 24; j++)
-				dmabuffer[b].data[(i * 24 + j) * 3 + 0]=0xff;
-			// Notably no need to set the zero bytes
+  bzero(&dmabuffer, sizeof(dmabuffer));
+  bzero(leds,sizeof(*leds));
+  for (int b = 0; b < 2; b++)
+    for (int i = 0; i < LEDSPERLINE; i++)
+      for (int j = 0; j < 24; j++)
+        dmabuffer[b].data[(i * 24 + j) * 3 + 0]=0xff;
+  // Notably no need to set the zero bytes
 }
 
 void update_leds() {
-	for (int i=0; i<LEDSPERLINE; i++)
-		for (int j=0; j<3; j++) // RGB
-			for (int k=0; k < 8; k++) {
-				unsigned char bit = 128>>k;
-				int offset = i * 3 +j;
-				dmabuffer[active_buffer].data[(i*24 + j * 8 + k) * 3 +1] =
-						((leds[LEDSPERLINE*0*3 + offset] & bit) ? 1 : 0 )+
-						((leds[LEDSPERLINE*1*3 + offset] & bit) ? 2 : 0 )+
-						((leds[LEDSPERLINE*2*3 + offset] & bit) ? 4 : 0 )+
-						((leds[LEDSPERLINE*3*3 + offset] & bit) ? 8 : 0 )+
-						((leds[LEDSPERLINE*4*3 + offset] & bit) ? 16 : 0 )+
-						((leds[LEDSPERLINE*5*3 + offset] & bit) ? 32 : 0 )+
-						((leds[LEDSPERLINE*6*3 + offset] & bit) ? 64 : 0 )+
-						((leds[LEDSPERLINE*7*3 + offset] & bit) ? 128 : 0);
-			}
+  for (int i=0; i<LEDSPERLINE; i++)
+    for (int j=0; j<3; j++) // RGB
+      for (int k=0; k < 8; k++) {
+        unsigned char bit = 128>>k;
+        int offset = i * 3 +j;
+        dmabuffer[active_buffer].data[(i*24 + j * 8 + k) * 3 +1] =
+              ((leds[LEDSPERLINE*0*3 + offset] & bit) ? 1 : 0 )+
+              ((leds[LEDSPERLINE*1*3 + offset] & bit) ? 2 : 0 )+
+              ((leds[LEDSPERLINE*2*3 + offset] & bit) ? 4 : 0 )+
+              ((leds[LEDSPERLINE*3*3 + offset] & bit) ? 8 : 0 )+
+              ((leds[LEDSPERLINE*4*3 + offset] & bit) ? 16 : 0 )+
+              ((leds[LEDSPERLINE*5*3 + offset] & bit) ? 32 : 0 )+
+              ((leds[LEDSPERLINE*6*3 + offset] & bit) ? 64 : 0 )+
+              ((leds[LEDSPERLINE*7*3 + offset] & bit) ? 128 : 0);
+      }
 }
 
 void ledsetrgb(int led, unsigned char r, unsigned char g, unsigned char b) {
-	if (led < NUMLEDS) {
-		leds[led*3+0]=r;
-		leds[led*3+1]=g;
-		leds[led*3+2]=b;
-	}
+  if (led < NUMLEDS) {
+    leds[led*3+0]=r;
+    leds[led*3+1]=g;
+    leds[led*3+2]=b;
+  }
 }
 
 void usbline(char *line){
-	int a,b,c,d;
-	if (4 == sscanf(line,"%x %x %x %x",&a,&b,&c,&d)) {
-		ledsetrgb(a,b,c,d);
-		ledsupdated=1;
-	}
+  int a,b,c,d;
+  if (4 == sscanf(line,"%x %x %x %x",&a,&b,&c,&d)) {
+    ledsetrgb(a,b,c,d);
+    ledsupdated=1;
+  }
 }
 
 void usbbyte(unsigned char c) {
@@ -175,39 +175,39 @@ void usbbyte(unsigned char c) {
   static int  usblinelen = 0;
 
   switch (c) {
-	case '\n':
-	case '\r':
-	case 0:
-		if (usblinelen) {
-			usblinebuf[usblinelen]=0;
-			usbline(usblinebuf);
-			usblinelen=0;
-		}
-		break;
-	default:
-		if (usblinelen < USBLINESIZE )
-			usblinebuf[usblinelen++] = c;
-		break;
-	}
+    case '\n':
+    case '\r':
+    case 0:
+      if (usblinelen) {
+        usblinebuf[usblinelen]=0;
+        usbline(usblinebuf);
+        usblinelen=0;
+      }
+      break;
+    default:
+      if (usblinelen < USBLINESIZE )
+        usblinebuf[usblinelen++] = c;
+      break;
+  }
 #else
   static char prevbyte = 0;
   static int hibyte = 0;
   static int ledno = -1;
   if ((prevbyte == 0xff) && (c == 0xff)) {
-	  // start of frame
-	  hibyte = 1;
-	  ledno = 0;
+    // start of frame
+    hibyte = 1;
+    ledno = 0;
   } else if (hibyte) {
-	// hibyte on packet
+    // hibyte on packet
     if (c & 0x80) {
-      // packet termination
+    // packet termination
       ledsupdated = 1;
       ledno=0;
     } else {
       hibyte = 0;
     }
   } else {
-	// lobyte on packet
+    // lobyte on packet
     hibyte = 1;
     unsigned short rgb15 = (prevbyte << 8) | (c);
     ledsetrgb(ledno++, gamma5[(rgb15>>10)&31], gamma5[(rgb15>>5)&31], gamma5[(rgb15)&31]);
@@ -217,8 +217,8 @@ void usbbyte(unsigned char c) {
 }
 
 void usbdatain(unsigned char *buf, int len) {
-	for (int i=0;i<len;i++)
-		usbbyte(buf[i]);
+  for (int i=0;i<len;i++)
+    usbbyte(buf[i]);
 }
 /* USER CODE END 0 */
 
@@ -265,16 +265,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
-	HAL_DMA_Start(&hdma_tim1_up, (uint32_t)&dmabuffer[active_buffer], (uint32_t)&GPIOD->ODR, DMALEN);
+    HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+    HAL_DMA_Start(&hdma_tim1_up, (uint32_t)&dmabuffer[active_buffer], (uint32_t)&GPIOD->ODR, DMALEN);
     active_buffer=!active_buffer; // switch buffer to write to
     while (!ledsupdated) HAL_Delay(1);
     ledsupdated=0;
-	update_leds();
-
+    update_leds();
     // Ensure previous transfer has completed
-	HAL_DMA_PollForTransfer(&hdma_tim1_up, HAL_DMA_FULL_TRANSFER, 50000);
-	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+    HAL_DMA_PollForTransfer(&hdma_tim1_up, HAL_DMA_FULL_TRANSFER, 50000);
+    HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
   }
   /* USER CODE END 3 */
 }
