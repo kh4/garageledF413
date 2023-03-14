@@ -1,4 +1,8 @@
-# STM32F413ZH discovery based 8 channel WS2812 driver
+# STM32F413ZH Nucleo based 8 channel WS2812 driver
+
+## Hardware setup
+  o STM32F413ZH Nucleo board
+  Strings of WS2812 led strips are directly connected to PD0-PD7 pins
 
 ## Basics of WS2812 led chip driving
 
