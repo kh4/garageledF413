@@ -195,22 +195,22 @@ void usbbyte(unsigned char c) {
   static int ledno = -1;
   if ((prevbyte == 0xff) && (c == 0xff)) {
 	  // start of frame
-	  hibyte=1;
-	  ledno=0;
-  } else if ((prevbyte == 0xee) && (c == 0xee)) {
-	  // end of frame
-	  ledsupdated=1;
-	  ledno=-1;
-  } else {
-    if (ledno >=0 ) {
-      if (hibyte) {
-        hibyte = 0;
-      } else {
-        hibyte = 1;
-        unsigned short rgb15 = (prevbyte << 8) | (c);
-        ledsetrgb(ledno++, gamma5[(rgb15>>10)&31], gamma5[(rgb15>>5)&31], gamma5[(rgb15)&31]);
-      }
+	  hibyte = 1;
+	  ledno = 0;
+  } else if (hibyte) {
+	// hibyte on packet
+    if (c & 0x80) {
+      // packet termination
+      ledsupdated = 1;
+      ledno=0;
+    } else {
+      hibyte = 0;
     }
+  } else {
+	// lobyte on packet
+    hibyte = 1;
+    unsigned short rgb15 = (prevbyte << 8) | (c);
+    ledsetrgb(ledno++, gamma5[(rgb15>>10)&31], gamma5[(rgb15>>5)&31], gamma5[(rgb15)&31]);
   }
   prevbyte = c;
 #endif

@@ -133,9 +133,9 @@
 ## Updating leds over USB CDC interface
 
   Led colors can be updated via USB CDC interface by sending data in following format
-  - **0xff 0xff** two byte header
-  - N * **PIXH PIXL** where PIXH = (pixval >> 8) and PIXL (pixval & x0ff)
-  - **0xee 0xee** two byte end of frame
+  - **0xff 0xff** two byte header to sync up
+  - N * **PIXH PIXL** where PIXH<0x80 and PIXH = (pixval >> 8) and PIXL (pixval & x0ff)
+  - if PIXH value above is >= 0x80 this is considered EOF
   
   pixval is 15bit color for a pixel (5 bits per component) in form of
   ```
