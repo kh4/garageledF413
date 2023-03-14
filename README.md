@@ -142,11 +142,39 @@
   pixval = (r<<10)|(g<<5)|(b) 
   ```
 
+## Performance considerations (and maximum update rate)
+
+  Below we are considering the default setup of 8*300 leds, having more or less will
+  adjust in linear fashion.
+  
+  To update all the leds 2*2400+3 bytes of data needs to be transferred over the CDC 
+  interface, upon testing this seems to takes arong 16ms.
+  
+  After transferring the data update_leds() is run, which takes somewhere around 10ms.
+
+  As the data is transferred to the leds using DMA and will happen in background it
+  can execute fully parallel to the above, update of the 300 leds strings will take 
+  about 10ms so this clearly is not the limiting factor. (As a sidenote updating 2400
+  leds on a single string would need almost 80ms to complete).
+  
+  Overall the performance is limited by the STM32 CPU performing the USB transfer
+  (interrupts) and data_conversion (main loop). In practice best performance is 
+  achieved by sending a full update over USB and then waiting enough (10ms) to allow
+  the data conversion to execute freely. With this we can achive update rate of around 
+  25ms or 40Hz.
+
+  If data is continously sent over USB the actual frame rate to the leds drops to 
+  about half (and every other frame is dropped).
+  
+  Some optimization may be possible to both USB receive and update_leds code, however
+  the performace is more than sufficient for currently planned use cases.
+
 ## Limits of implementation
 
   The system can in this form drive up to around 900 leds per output (total 7200).
-  This is mainly due to DMA transfer count being limited to 16 bit value.
+  This limit isdue to DMA transfer count being limited to 16 bit value.
   
-  It is possible to extend to double by using 16 outputs instead of 8, at this 
+  It is possible to extend to 14400 by using 16 outputs instead of 8, at this 
   point the amount of RAM (320kB) on the CPU will also start to be an issue as
   with double buffering almost everything is used up by the two buffers.
+  (2 * 2 * 900 * 24 * 3 = 259kB dma buffers + 43kB framebuffer)
