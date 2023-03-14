@@ -22,6 +22,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <errno.h>
+#include <unistd.h>
+#include <stdio.h>
+#include "usbd_cdc_if.h"
 
 /* USER CODE END Includes */
 
@@ -32,6 +36,13 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define LEDSPERLINE 300
+#define NUMLEDS (8*LEDSPERLINE)
+
+// 3 bytes per bit, 24 bits per led plus padding on each end
+#define DMAHEAD 4
+#define DMATRAIL 140
+#define DMALEN (DMAHEAD + LEDSPERLINE * 3 * 24 + DMATRAIL)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,7 +57,15 @@ DMA_HandleTypeDef hdma_tim1_up;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+unsigned char leds[NUMLEDS*3];
+struct {
+	unsigned char header[DMAHEAD];
+	unsigned char data[LEDSPERLINE * 3 * 24];
+	unsigned char trailer[DMATRAIL];
+} dmabuffer[2]; // 2 copies for double buffering
 
+int active_buffer=0;
+int ledsupdated=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,6 +81,97 @@ static void MX_TIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+int _write(int file, char *data, int len) {
+  if ((file != STDOUT_FILENO) && (file != STDERR_FILENO)) {
+    errno = EBADF;
+    return -1;
+  }
+#if 0
+  int left = len;
+  while (left--) {
+    while (!__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TXE));
+    huart3.Instance->DR = *(data++);
+  }
+
+  while (!__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TXE));
+  while (!__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC));
+#else
+  CDC_Transmit_FS((uint8_t*)data, len);
+#endif
+  return len;
+}
+
+void blank_leds() {
+	bzero(&dmabuffer, sizeof(dmabuffer));
+	bzero(leds,sizeof(*leds));
+	for (int b = 0; b < 2; b++)
+		for (int i = 0; i < LEDSPERLINE; i++)
+			for (int j = 0; j < 24; j++)
+				dmabuffer[b].data[(i * 24 + j) * 3 + 0]=0xff;
+			// Notably no need to set the zero bytes
+}
+
+void update_leds() {
+	for (int i=0; i<LEDSPERLINE; i++)
+		for (int j=0; j<3; j++) // RGB
+			for (int k=0; k < 8; k++) {
+				unsigned char bit = 128>>k;
+				int offset = i * 3 +j;
+				dmabuffer[active_buffer].data[(i*24 + j * 8 + k) * 3 +1] =
+						((leds[LEDSPERLINE*0*3 + offset] & bit) ? 1 : 0 )+
+						((leds[LEDSPERLINE*1*3 + offset] & bit) ? 2 : 0 )+
+						((leds[LEDSPERLINE*2*3 + offset] & bit) ? 4 : 0 )+
+						((leds[LEDSPERLINE*3*3 + offset] & bit) ? 8 : 0 )+
+						((leds[LEDSPERLINE*4*3 + offset] & bit) ? 16 : 0 )+
+						((leds[LEDSPERLINE*5*3 + offset] & bit) ? 32 : 0 )+
+						((leds[LEDSPERLINE*6*3 + offset] & bit) ? 64 : 0 )+
+						((leds[LEDSPERLINE*7*3 + offset] & bit) ? 128 : 0);
+			}
+}
+
+void ledsetrgb(int led, unsigned char r, unsigned char g, unsigned char b) {
+	leds[led*3+0]=r;
+	leds[led*3+1]=g;
+	leds[led*3+2]=b;
+    ledsupdated=1;
+}
+
+static int usbreceived = 0;
+
+void usbline(char *line){
+	int a,b,c,d;
+	if (4 == sscanf(line,"%x %x %x %x",&a,&b,&c,&d)) {
+        ledsetrgb(a,b,c,d);
+	}
+}
+
+#define USBLINESIZE 64
+char usblinebuf[USBLINESIZE+1];
+int  usblinelen = 0;
+
+void usbbyte(char c) {
+	switch (c) {
+	case '\n':
+	case '\r':
+	case 0:
+		if (usblinelen) {
+			usblinebuf[usblinelen]=0;
+			usbline(usblinebuf);
+			usblinelen=0;
+		}
+		break;
+	default:
+		if (usblinelen < USBLINESIZE )
+			usblinebuf[usblinelen++] = c;
+		break;
+	}
+}
+
+void usbdatain(char *buf, int len) {
+	usbreceived+=len;
+	for (int i=0;i<len;i++)
+		usbbyte(buf[i]);
+}
 /* USER CODE END 0 */
 
 /**
@@ -71,7 +181,7 @@ static void MX_TIM1_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  blank_leds();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -97,7 +207,7 @@ int main(void)
   MX_TIM1_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start(&htim1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -107,6 +217,17 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+	HAL_DMA_Start(&hdma_tim1_up, (uint32_t)&dmabuffer[active_buffer], (uint32_t)&GPIOD->ODR, DMALEN);
+    active_buffer=!active_buffer; // switch buffer to write to
+    while (!ledsupdated) HAL_Delay(1);
+    ledsupdated=0;
+	update_leds();
+
+    // Ensure previous transfer has completed
+	HAL_DMA_PollForTransfer(&hdma_tim1_up, HAL_DMA_FULL_TRANSFER, 50000);
+	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+	printf("Running %d\r\n",usbreceived);
   }
   /* USER CODE END 3 */
 }
@@ -198,7 +319,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM1_Init 2 */
-
+  __HAL_TIM_ENABLE_DMA(&htim1, TIM_DMA_UPDATE);
   /* USER CODE END TIM1_Init 2 */
 
 }
