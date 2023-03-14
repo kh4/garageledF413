@@ -135,6 +135,21 @@ void blank_leds() {
   // Notably no need to set the zero bytes
 }
 
+// This routine updates single led into dmabuffer
+// notably utilizing this does not properly work with double buffering
+void update_led1(int n){
+  const unsigned char bitset = 1 << (n / LEDSPERLINE);
+  const int i = n % LEDSPERLINE;
+  for (int j=0; j<3; j++) // RGB
+    for (int k=0; k < 8; k++) {
+      if (leds[n * 3 +j] & (128>>k))
+        dmabuffer[active_buffer].data[(i * 24 + j * 8 + k) * 3 +1] |= bitset;
+      else
+        dmabuffer[active_buffer].data[(i * 24 + j * 8 + k) * 3 +1] &= ~bitset;
+    }
+}
+
+// This routine updates the whole dmabuffer
 void update_leds() {
   for (int i=0; i<LEDSPERLINE; i++)
     for (int j=0; j<3; j++) // RGB
