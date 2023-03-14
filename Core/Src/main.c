@@ -280,10 +280,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
     HAL_DMA_Start(&hdma_tim1_up, (uint32_t)&dmabuffer[active_buffer], (uint32_t)&GPIOD->ODR, DMALEN);
     active_buffer=!active_buffer; // switch buffer to write to
     while (!ledsupdated) HAL_Delay(1);
+    HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
     ledsupdated=0;
     update_leds();
     // Ensure previous transfer has completed
