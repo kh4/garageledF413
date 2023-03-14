@@ -130,6 +130,18 @@
 
   The transfer for 300 led strings takes a bit under 9ms (300*24*3*0.4us).
 
+## Updating leds over USB CDC interface
+
+  Led colors can be updated via USB CDC interface by sending data in following format
+  - **0xff 0xff** two byte header
+  - N * **PIXH PIXL** where PIXH = (pixval >> 8) and PIXL (pixval & x0ff)
+  - **0xee 0xee** two byte end of frame
+  
+  pixval is 15bit color for a pixel (5 bits per component) in form of
+  ```
+  pixval = (r<<10)|(g<<5)|(b) 
+  ```
+
 ## Limits of implementation
 
   The system can in this form drive up to around 900 leds per output (total 7200).
