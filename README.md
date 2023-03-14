@@ -3,7 +3,7 @@
 ## Hardware setup
   - STM32F413ZH Nucleo board
   - strings of WS2812 led strips are directly connected to PD0-PD7 pin
-  - eachstring can contain upto around 900 leds (it is recommended to 
+  - each string can contain upto around 900 leds (it is recommended to 
     equally divide leds between outputs for best performance)
 
 ## Basics of WS2812 led chip driving
@@ -12,6 +12,13 @@
   represented by either long or short pulse:
   - 1 encoded as 0.8us high followed by 0.4us low
   - 0 encoded as 0.4us high followed by 0.8us low
+  
+  When receiving the data each ws2812 will grab 24 (3x8) bits to use as RGB 
+  values and pass rest forward.
+  
+  A pause in the stream will latch the data into the chips and allow new frame to
+  be started. This pause is typically expected to be around 10us however some 
+  devices require more.
 
 ## Driving large number of WS2812 chips
 
@@ -23,6 +30,11 @@
   parallel by outputting the signal on GPIO pins using timer based DMA transfer
   from STM32 CPU. In this implementation 8 bit words are used to drive 8 
   parallel streams, however it could easily be extended to 16.
+  
+  The downside of the GPIO approach is that it needs quite large buffer for the
+  output data, when driving single output using this method the amount of buffer 
+  space is 24x the original how ever this is reduced to much more tolerable 3x
+  when driving output with all 8 bits.
   
 ## Basic structure
 
