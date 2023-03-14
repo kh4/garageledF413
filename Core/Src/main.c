@@ -43,6 +43,8 @@
 #define DMAHEAD 4
 #define DMATRAIL 140
 #define DMALEN (DMAHEAD + LEDSPERLINE * 3 * 24 + DMATRAIL)
+
+#define USBLINESIZE 64
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -66,6 +68,9 @@ struct {
 
 int active_buffer=0;
 int ledsupdated=0;
+
+char usblinebuf[USBLINESIZE+1];
+int  usblinelen = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -136,18 +141,12 @@ void ledsetrgb(int led, unsigned char r, unsigned char g, unsigned char b) {
     ledsupdated=1;
 }
 
-static int usbreceived = 0;
-
 void usbline(char *line){
 	int a,b,c,d;
 	if (4 == sscanf(line,"%x %x %x %x",&a,&b,&c,&d)) {
         ledsetrgb(a,b,c,d);
 	}
 }
-
-#define USBLINESIZE 64
-char usblinebuf[USBLINESIZE+1];
-int  usblinelen = 0;
 
 void usbbyte(char c) {
 	switch (c) {
@@ -168,7 +167,6 @@ void usbbyte(char c) {
 }
 
 void usbdatain(char *buf, int len) {
-	usbreceived+=len;
 	for (int i=0;i<len;i++)
 		usbbyte(buf[i]);
 }
@@ -227,7 +225,6 @@ int main(void)
     // Ensure previous transfer has completed
 	HAL_DMA_PollForTransfer(&hdma_tim1_up, HAL_DMA_FULL_TRANSFER, 50000);
 	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
-	printf("Running %d\r\n",usbreceived);
   }
   /* USER CODE END 3 */
 }
