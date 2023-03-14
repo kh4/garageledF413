@@ -1,15 +1,17 @@
 # STM32F413ZH Nucleo based 8 channel WS2812 driver
 
 ## Hardware setup
-  o STM32F413ZH Nucleo board
-  Strings of WS2812 led strips are directly connected to PD0-PD7 pins
+  - STM32F413ZH Nucleo board
+  - strings of WS2812 led strips are directly connected to PD0-PD7 pin
+  - eachstring can contain upto around 900 leds (it is recommended to 
+    equally divide leds between outputs for best performance)
 
 ## Basics of WS2812 led chip driving
 
   WS2812 uses single wire pulse width modulated data stream where each bit is 
   represented by either long or short pulse:
-    o 1 -> 0.8us high followed by 0.4us low
-    o 0 -> 0.4us high followed by 0.8us low
+  - 1 encoded as 0.8us high followed by 0.4us low
+  - 0 encoded as 0.4us high followed by 0.8us low
 
 ## Driving large number of WS2812 chips
 
