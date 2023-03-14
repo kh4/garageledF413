@@ -216,7 +216,7 @@ void usbbyte(unsigned char c) {
     // hibyte on packet
     if (c & 0x80) {
     // packet termination
-      ledsupdated = 1;
+      if (c != 0xff) ledsupdated = 1;
       ledno=0;
     } else {
       hibyte = 0;
