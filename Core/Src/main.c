@@ -233,8 +233,10 @@ void usbbyte(unsigned char c) {
 }
 
 void usbdatain(unsigned char *buf, int len) {
+  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
   for (int i=0;i<len;i++)
     usbbyte(buf[i]);
+  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 }
 /* USER CODE END 0 */
 
