@@ -215,8 +215,9 @@ void usbbyte(unsigned char c) {
   } else if (hibyte) {
     // hibyte on packet
     if (c & 0x80) {
-    // packet termination
-      if (c != 0xff) ledsupdated = 1;
+      // packet termination
+      if (c != 0xff)
+        ledsupdated = c - 0x7f;
       ledno=0;
     } else {
       hibyte = 0;
@@ -284,8 +285,18 @@ int main(void)
     active_buffer=!active_buffer; // switch buffer to write to
     while (!ledsupdated) HAL_Delay(1);
     HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
-    ledsupdated=0;
-    update_leds();
+    if (ledsupdated == 2) {
+      blank_leds();
+      ledsupdated = 0;
+    } else if (ledsupdated == 3){
+      // FADEOUT
+      for (int i=0; i<NUMLEDS*3; i++)
+        leds[i]>>=1;
+    }
+    if (ledsupdated) {
+      ledsupdated = 0;
+      update_leds();
+    }
     // Ensure previous transfer has completed
     HAL_DMA_PollForTransfer(&hdma_tim1_up, HAL_DMA_FULL_TRANSFER, 50000);
     HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
